@@ -16,6 +16,7 @@ import pandas as pd
 import warnings
 from tqdm.auto import tqdm
 import shap
+from sklearn.feature_selection import mutual_info_classif
 
 class GenAIExplainer(BaseModel):
     """ Class to prepare data, train the blackbox model and evaluate its
@@ -301,3 +302,39 @@ class GenAIExplainer(BaseModel):
                     f"following is the list of indexes {out_of_range}."
                 )
             self.is_out_of_range_[metric] = is_out_of_range
+
+
+
+
+    def select_top_features_as_dict(self, df_target: pd.DataFrame, target_column: str, top_n: int = 30) -> dict:
+        """
+        Selects the top N features based on mutual information with the target column
+        and updates self.preprocessed_features with the selected features as a dictionary.
+
+        Parameters:
+        - df_target: DataFrame containing the target column
+        - target_column: Name of the target column in df_target
+        - top_n: Number of top features to select (default is 30)
+
+        Returns:
+        - Dictionary with top feature names as keys and lists of values as values
+        """
+        # Convert preprocessed features to DataFrame if not already
+        df_features = pd.DataFrame(self.preprocessed_features)
+
+        # Compute mutual information between features and the target column
+        mi = mutual_info_classif(df_features, df_target[target_column])
+
+        # Create a Series to associate mutual information scores with feature names
+        mi_series = pd.Series(mi, index=df_features.columns)
+
+        # Select the top N features with the highest mutual information scores
+        top_features = mi_series.sort_values(ascending=False).head(top_n).index
+
+        # Filter the DataFrame to retain only the top features
+        df_selected = df_features[top_features]
+
+        # Update the internal state with the selected features as a dictionary
+        self.preprocessed_features = df_selected.to_dict(orient='list')
+
+        return self.preprocessed_features
