@@ -16,6 +16,7 @@ import pandas as pd
 import warnings
 from tqdm.auto import tqdm
 import shap
+from sklearn.feature_selection import mutual_info_classif
 
 class GenAIExplainer(BaseModel):
     """ Class to prepare data, train the blackbox model and evaluate its
